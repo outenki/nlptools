@@ -65,7 +65,28 @@ def numerical(tokens: Iterable, vocab: Dict[str, int]) -> List[int]:
     return [vocab[t] for t in tokens]
 
 
-def sents_to_sequences(sents: List[Any], vocab: Dict[str, int]) -> ndarray:
+def sent_to_sequence(
+        sent: List[str], vocab: Dict[str, int], hits: Dict[str, int]
+        ) -> ndarray:
+    indices = list()
+    for word in sent:
+        if U.is_number(word):
+            indices.append(vocab['<num>'])
+            hits['num'] += 1
+        elif word == '<pad>':
+            indices.append(vocab['<pad>'])
+            hits['pad'] += 1
+        elif word in vocab:
+            indices.append(vocab[word])
+        else:
+            indices.append(vocab['<unk>'])
+            hits['unk'] += 1
+    return np.array(indices)
+
+
+def sents_to_sequences(
+        sents: List[Any], vocab: Dict[str, int]
+        ) -> List[np.ndarray]:
     '''Convert sents/tokens into lists of integer numbers.
     :param tokens: List[str] or List[List[str]]
         A list of sentences or a list of tokens. If it's a list of
@@ -81,21 +102,21 @@ def sents_to_sequences(sents: List[Any], vocab: Dict[str, int]) -> ndarray:
     for i, sent in tqdm.tqdm(list(enumerate(sents))):
         if type(sents[0]) == str:
             sent = tokenize(sent)
-        indices = []
-        for word in sent:
-            if U.is_number(word):
-                indices.append(vocab['<num>'])
-                hits['num'] += 1
-            elif word == '<pad>':
-                indices.append(vocab['<pad>'])
-                hits['pad'] += 1
-            elif word in vocab:
-                indices.append(vocab[word])
-            else:
-                indices.append(vocab['<unk>'])
-                hits['unk'] += 1
-            total += 1
-        data.append(indices)
+        indices = sent_to_sequence(sent, vocab, hits)
+        # for word in sent:
+            # if U.is_number(word):
+            #     indices.append(vocab['<num>'])
+            #     hits['num'] += 1
+            # elif word == '<pad>':
+            #     indices.append(vocab['<pad>'])
+            #     hits['pad'] += 1
+            # elif word in vocab:
+            #     indices.append(vocab[word])
+            # else:
+            #     indices.append(vocab['<unk>'])
+            #     hits['unk'] += 1
+        total += len(sent)
+        data.append(np.array(indices))
 
     if total == 0:
         total = 1
