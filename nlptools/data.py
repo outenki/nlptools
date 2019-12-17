@@ -65,11 +65,13 @@ def numerical(tokens: Iterable, vocab: Dict[str, int]) -> List[int]:
     return [vocab[t] for t in tokens]
 
 
-def sent_to_sequence(
-        sent: List[str], vocab: Dict[str, int], hits: Dict[str, int]
+def tokens_to_indices(
+        tokens: List[str], vocab: Dict[str, int], hits: Dict[str, int]
         ) -> ndarray:
     indices = list()
-    for word in sent:
+    if not hits:
+        hits = {'num': 0, 'pad': 0, 'unk': 0}
+    for word in tokens:
         if U.is_number(word):
             indices.append(vocab['<num>'])
             hits['num'] += 1
@@ -93,6 +95,7 @@ def sents_to_sequences(
         sentences, each sentence will be tokenized first.
     :param vocab: Dict[str, int]
         A dict mapping tokens to indices.
+
     :return List[List[int]]:
     '''
     data = []
@@ -102,19 +105,7 @@ def sents_to_sequences(
     for i, sent in tqdm.tqdm(list(enumerate(sents))):
         if type(sents[0]) == str:
             sent = tokenize(sent)
-        indices = sent_to_sequence(sent, vocab, hits)
-        # for word in sent:
-            # if U.is_number(word):
-            #     indices.append(vocab['<num>'])
-            #     hits['num'] += 1
-            # elif word == '<pad>':
-            #     indices.append(vocab['<pad>'])
-            #     hits['pad'] += 1
-            # elif word in vocab:
-            #     indices.append(vocab[word])
-            # else:
-            #     indices.append(vocab['<unk>'])
-            #     hits['unk'] += 1
+        indices = tokens_to_indices(sent, vocab, hits)
         total += len(sent)
         data.append(np.array(indices))
 
@@ -212,5 +203,6 @@ class EmbReader:
 
 def qwk(pred, y):
     return QWK(
-        y.astype(int), np.rint(pred).astype(int), labels=None, weights='quadratic'
+        y.astype(int), np.rint(pred).astype(int),
+        labels=None, weights='quadratic'
     )
