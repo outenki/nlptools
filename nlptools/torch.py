@@ -29,6 +29,7 @@ def run(
         criterion: nn.Module,
         mode: str,
         scheduler,
+        device,
         score_range=None
         ):
     if mode == 'train':
@@ -41,11 +42,14 @@ def run(
     preds = list()
     targets = list()
     feas = list()
-    for x, x_len, y in tqdm.tqdm(data, ncols=100):
+    for x, mask, y in tqdm.tqdm(data, ncols=100):
         data_len += len(x)
+        x = x.to(device)
+        mask = mask.to(device)
+        y = y.to(device)
 
         optimizer.zero_grad()
-        res = model(x, x_len)
+        res = model(x, mask)
         pred = res['output'].view(-1)
         fea = res['fea']
         preds.append(pred)
