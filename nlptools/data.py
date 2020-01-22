@@ -12,7 +12,7 @@ from sklearn.metrics import cohen_kappa_score as QWK
 logger = logging.getLogger(__name__)
 
 
-def normalize_scores(scores: ndarray, score_range: Tuple) -> ndarray:
+def normalize_scores(scores: ndarray, score_range: ndarray) -> ndarray:
     '''
     Convert scores to boundary of [0, 1].
     arg scores_array: ndarray, scores to convert.
@@ -21,7 +21,12 @@ def normalize_scores(scores: ndarray, score_range: Tuple) -> ndarray:
     scores_array = scores
     if type(scores_array) == list:
         scores_array = np.array(scores_array)
-    low, high = score_range
+    if type(score_range) != ndarray:
+        score_range = np.array(score_range)
+    if len(score_range.shape) == 1:
+        score_range = np.expand_dims(score_range, 0)
+        score_range = score_range.repeat(len(scores), 0)
+    low, high = score_range[:, 0], score_range[:, 1]
     scores_array = (scores_array - low) / (high - low)
     assert np.all(scores_array >= 0), f'{scores_array.min()} < 0'
     assert np.all(scores_array <= 1), f'{scores_array.max()} > 1'
@@ -37,9 +42,15 @@ def recover_scores(scores: ndarray, score_range: Tuple) -> ndarray:
     scores_array = scores
     if type(scores_array) == list:
         scores_array = np.array(scores_array)
+    if type(score_range) != ndarray:
+        score_range = np.array(score_range)
+    if len(score_range.shape) == 1:
+        score_range = np.expand_dims(score_range, 0)
+        score_range = score_range.repeat(len(scores), 0)
     assert np.all(scores_array >= 0), f'{scores_array.min()} < 0'
     assert np.all(scores_array <= 1), f'{scores_array.max()} > 1'
-    low, high = score_range
+    # low, high = score_range
+    low, high = score_range[:, 0], score_range[:, 1]
     scores_array = scores_array * (high - low) + low
     assert np.all(scores_array >= low), f'{scores_array.min()} < {low}'
     assert np.all(scores_array <= high), f'{scores_array.max()} > {high}'
