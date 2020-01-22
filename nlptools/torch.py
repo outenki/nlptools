@@ -22,7 +22,7 @@ def get_optimizer(net, algorithm, lr=0.001):
     return optimizer
 
 
-def run(
+def run_deprecated(
         model: nn.Module,
         data: DataLoader,
         optimizer: optim.Optimizer,
@@ -76,4 +76,77 @@ def run(
     loss = epoch_loss/data_len
     return {
         'qwk': qwk, 'loss': loss, 'pred': preds, 'y': targets, 'fea': feas
+    }
+
+
+def run(
+        model: nn.Module,
+        data: DataLoader,
+        optimizer: optim.Optimizer,
+        criterion: nn.Module,
+        mode: str,
+        scheduler,
+        device,
+        score_range=None
+        ):
+    if mode == 'train':
+        model.train()
+    elif mode == 'eval':
+        model.eval()
+
+    epoch_loss = 0
+    data_size = 0
+    preds = list()
+    feas = list()
+    pred_att = list()
+
+    normalized_targets = list()
+
+    for dt in tqdm.tqdm(data, ncols=100):
+        batch_size = len(dt[0])
+        data_size += batch_size
+
+        dt = [d.to(device) for d in dt]
+        in_data = dt[:-1]
+        y = dt[-1]
+
+        optimizer.zero_grad()
+        res = model(*in_data)
+        pred = res['output'].view(-1)
+        preds.append(pred)
+        feas.append(res['fea'])
+        if res['att'] is not None:
+            if type(res['att']) == np.ndarray:
+                pred_att.append(res['att'])
+            else:
+                pred_att.append(res['att'].detach().cpu().numpy())
+
+        normalized_targets.append(y)
+
+        loss = criterion(pred, y)
+        epoch_loss += batch_size * loss.item()
+        if mode == 'train':
+            loss.backward()
+            optimizer.step()
+
+            if scheduler:
+                scheduler.step()
+
+    # compute loss and qwk
+    normalized_preds = torch.cat(preds).detach().cpu().numpy()
+    preds = normalized_preds
+    normalized_targets = torch.cat(normalized_targets).cpu().numpy()
+    targets = normalized_targets
+    feas = torch.cat(feas).detach().cpu().numpy()
+    if score_range is not None:
+        preds = D.recover_scores(normalized_preds, score_range)
+        targets = D.recover_scores(normalized_targets, score_range)
+        qwk = D.qwk(preds, targets)
+    else:
+        qwk = -1
+    loss = epoch_loss/data_size
+    return {
+        'qwk': qwk, 'loss': loss, 'fea': feas, 'att': pred_att,
+        'pred': preds, 'normalized_preds': normalized_preds,
+        'targets': targets, 'normalized_targets': normalized_targets
     }
