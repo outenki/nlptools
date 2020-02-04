@@ -87,7 +87,8 @@ def run(
         mode: str,
         scheduler,
         device,
-        score_range=None
+        score_range=None,
+        att_loss=False
         ):
     if mode == 'train':
         model.train()
@@ -124,6 +125,11 @@ def run(
         normalized_targets.append(y)
 
         loss = criterion(pred, y)
+        if att_loss:
+            p_att = res['att']
+            g_att = dt[-2].narrow(-1, 0, p_att.shape[1])
+            loss += criterion(p_att, g_att)
+
         epoch_loss += batch_size * loss.item()
         if mode == 'train':
             loss.backward()
