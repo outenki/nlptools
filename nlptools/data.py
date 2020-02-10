@@ -8,6 +8,7 @@ from . import utils as U
 import logging
 import codecs
 from sklearn.metrics import cohen_kappa_score as QWK
+import operator
 
 logger = logging.getLogger(__name__)
 
@@ -217,3 +218,54 @@ def qwk(pred, y):
         y.astype(int), np.rint(pred).astype(int),
         labels=None, weights='quadratic'
     )
+
+
+def create_vocab_from_tokens(
+        tokens: List[str], vocab_size: int, to_lower: bool
+        ):
+    ''' Create vocabulary from tokens.
+    Vocabulary is a dict mapping words to an integer (index).
+    The words would be sorted by frequency.
+    :param tokens: List[str], tokens.
+    :param vocab_size: int, the max length of vocab, i.e. the number of keys
+        of vocab dict
+    :param to_lower: bool. All the tokens will be set to lower.
+    :return: dict. A dict mapping tokens to integers. Sort tokens by frequency
+        and take the indices as values of dict. There are special tokens of
+        '<pad>', '<num>', '<unkown>' and '<spec>', standing for 'paddings',
+        'numbers', 'unkown words' and 'special functional token'.
+    '''
+    total_words, unique_words = 0, 0
+    word_freqs = {}
+
+    for word in tqdm.tqdm(tokens):
+        try:
+            word_freqs[word] += 1
+        except KeyError:
+            unique_words += 1
+            word_freqs[word] = 1
+        total_words += 1
+    logger.info(f'{total_words} total words, {unique_words} unique words')
+    print(f'{total_words} total words, {unique_words} unique words')
+
+    # sort word_freqs by frequency
+    sorted_word_freqs = sorted(
+        word_freqs.items(), key=operator.itemgetter(1), reverse=True
+    )
+    if vocab_size <= 0:
+        # Choose vocab size automatically by removing all singletons
+        # Only the top-vocab_size words will be returned as vocab
+        # If vocab_size was set as 0, then calculate it as the number of
+        # words appeared more than once.
+        vocab_size = len(sorted_word_freqs)
+        # vocab_size = 0
+        # for word, freq in sorted_word_freqs:
+        #     if freq > 1:
+        #         vocab_size += 1
+    vocab = {'<pad>': 0, '<unk>': 1, '<num>': 2, '<spec>': 3}
+    vcb_len = len(vocab)
+    index = vcb_len
+    for word, _ in sorted_word_freqs[:vocab_size - vcb_len]:
+        vocab[word] = index
+        index += 1
+    return vocab
