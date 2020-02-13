@@ -88,7 +88,7 @@ def run(
         scheduler,
         device,
         score_range=None,
-        att_loss=False
+        att_loss=False,
         ):
     if mode == 'train':
         model.train()
@@ -118,9 +118,9 @@ def run(
         feas.append(res['fea'])
         if res['att'] is not None:
             if type(res['att']) == np.ndarray:
-                pred_att.append(res['att'])
+                pred_att += list(res['att'])
             else:
-                pred_att.append(res['att'].detach().cpu().numpy())
+                pred_att += list(res['att'].detach().cpu().numpy())
 
         normalized_targets.append(y)
 
@@ -152,7 +152,10 @@ def run(
         qwk = -1
     loss = epoch_loss/data_size
     return {
-        'qwk': qwk, 'loss': loss, 'fea': feas, 'att': pred_att,
-        'pred': preds, 'normalized_preds': normalized_preds,
-        'targets': targets, 'normalized_targets': normalized_targets
+        'qwk': qwk, 'loss': loss, 'fea': feas,
+        'att': pred_att,
+        'pred': preds,
+        'normalized_pred': normalized_preds,
+        'target': targets,
+        'normalized_target': normalized_targets
     }
