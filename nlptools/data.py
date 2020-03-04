@@ -232,7 +232,7 @@ def create_vocab_from_tokens(
     :param to_lower: bool. All the tokens will be set to lower.
     :return: dict. A dict mapping tokens to integers. Sort tokens by frequency
         and take the indices as values of dict. There are special tokens of
-        '<pad>', '<num>', '<unkown>' and '<spec>', standing for 'paddings',
+        '<pad>', '<num>', '<unkown>' and '<dummy>', standing for 'paddings',
         'numbers', 'unkown words' and 'special functional token'.
     '''
     total_words, unique_words = 0, 0
@@ -262,7 +262,7 @@ def create_vocab_from_tokens(
         # for word, freq in sorted_word_freqs:
         #     if freq > 1:
         #         vocab_size += 1
-    vocab = {'<pad>': 0, '<unk>': 1, '<num>': 2, '<spec>': 3}
+    vocab = {'<pad>': 0, '<unk>': 1, '<num>': 2, '<dummy>': 3}
     vcb_len = len(vocab)
     index = vcb_len
     for word, _ in sorted_word_freqs[:vocab_size - vcb_len]:

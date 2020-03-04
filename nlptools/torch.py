@@ -90,6 +90,12 @@ def run(
         score_range=None,
         att_loss=False,
         ):
+    '''
+    Run training/test step for one epoch.
+    Note: the length of <data> is not fixed.
+        The last element of <data> will be used as target of prediction,
+        while the others will be passed to the model as position arguments
+    '''
     if mode == 'train':
         model.train()
     elif mode == 'eval':
