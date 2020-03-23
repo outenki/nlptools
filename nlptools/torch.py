@@ -50,7 +50,7 @@ def run_deprecated(
 
         optimizer.zero_grad()
         res = model(x, mask)
-        pred = res['output'].view(-1)
+        pred = res['pred'].view(-1)
         fea = res['fea']
         preds.append(pred)
         feas.append(fea)
@@ -104,7 +104,7 @@ def run(
     epoch_loss = 0
     data_size = 0
     preds = list()
-    feas = list()
+    # feas = list()
     pred_att = list()
 
     normalized_targets = list()
@@ -119,9 +119,13 @@ def run(
 
         optimizer.zero_grad()
         res = model(*in_data)
-        pred = res['output'].view(-1)
+        # pred = res['pred'].view(-1)
+        if 'pred' in res:
+            pred = res['pred'].view(-1)
+        else:
+            pred = res['output'].view(-1)
         preds.append(pred)
-        feas.append(res['fea'])
+        # feas.append(res['fea'])
         if res['att'] is not None:
             if type(res['att']) == np.ndarray:
                 pred_att += list(res['att'])
@@ -129,7 +133,6 @@ def run(
                 pred_att += list(res['att'].detach().cpu().numpy())
 
         normalized_targets.append(y)
-
         loss = criterion(pred, y)
         if att_loss:
             p_att = res['att']
@@ -149,7 +152,7 @@ def run(
     preds = normalized_preds
     normalized_targets = torch.cat(normalized_targets).cpu().numpy()
     targets = normalized_targets
-    feas = torch.cat(feas).detach().cpu().numpy()
+    # feas = torch.cat(feas).detach().cpu().numpy()
     if score_range is not None:
         preds = D.recover_scores(normalized_preds, score_range)
         targets = D.recover_scores(normalized_targets, score_range)
@@ -158,7 +161,8 @@ def run(
         qwk = -1
     loss = epoch_loss/data_size
     return {
-        'qwk': qwk, 'loss': loss, 'fea': feas,
+        'qwk': qwk, 'loss': loss,
+        'fea': np.zeros([1, 1]),
         'att': pred_att,
         'pred': preds,
         'normalized_pred': normalized_preds,
