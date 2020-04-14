@@ -106,8 +106,10 @@ def run(
     preds = list()
     # feas = list()
     pred_att = list()
-
     normalized_targets = list()
+
+    keys_indices = list()
+    keys_weights = list()
 
     for dt in tqdm.tqdm(data, ncols=100):
         batch_size = len(dt[0])
@@ -120,6 +122,9 @@ def run(
         optimizer.zero_grad()
         res = model(*in_data)
         # pred = res['pred'].view(-1)
+        if 'keys_indices' in res:
+            keys_indices.append(res['keys_indices'])
+            keys_weights.append(res['keys_weights'])
         if 'pred' in res:
             pred = res['pred'].view(-1)
         else:
@@ -152,7 +157,6 @@ def run(
     preds = normalized_preds
     normalized_targets = torch.cat(normalized_targets).cpu().numpy()
     targets = normalized_targets
-    # feas = torch.cat(feas).detach().cpu().numpy()
     if score_range is not None:
         preds = D.recover_scores(normalized_preds, score_range)
         targets = D.recover_scores(normalized_targets, score_range)
@@ -160,6 +164,31 @@ def run(
     else:
         qwk = -1
     loss = epoch_loss/data_size
+
+    if keys_indices:
+        # keys_indices:
+        #   [[index_sub1_batch1, index_sub2_batch1],
+        #   [index_sub1_batch2, index_sub2_batch2],
+        #   ...,
+        #   [index_sub1_batchn, index_sub2_batchn]]
+        # index_subi_batchj: sahpe(batch_size, )
+
+        # [[index_sub1_batch1, index_sub1_batch2, ...],
+        # [index_sub2_batch1, index_sub2_batch2, ...]]
+        keys_indices = zip(*keys_indices)
+
+        # [index_sub1, index_sub2, ...]
+        keys_indices = [
+            torch.cat(ki).detach().cpu().numpy() for ki in keys_indices
+        ]
+        # [(ind1_1, ind2_1), (ind1_2, ind2_2), ..., (ind1_n, ind2_n)]
+        keys_indices = list(zip(*keys_indices))
+
+        keys_weights = zip(*keys_weights)
+        keys_weights = [
+            torch.cat(kw).detach().cpu().numpy() for kw in keys_weights
+        ]
+        keys_weights = list(zip(*keys_weights))
     return {
         'qwk': qwk, 'loss': loss,
         'fea': np.zeros([1, 1]),
@@ -167,5 +196,7 @@ def run(
         'pred': preds,
         'normalized_pred': normalized_preds,
         'target': targets,
-        'normalized_target': normalized_targets
+        'normalized_target': normalized_targets,
+        'keys_indices': keys_indices,
+        'keys_weights': keys_weights
     }
