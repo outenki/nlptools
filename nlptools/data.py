@@ -252,20 +252,22 @@ def create_vocab_from_tokens(
     sorted_word_freqs = sorted(
         word_freqs.items(), key=operator.itemgetter(1), reverse=True
     )
+    vocab = {'<pad>': 0, '<unk>': 1, '<num>': 2, '<dummy>': 3}
     if vocab_size <= 0:
         # Choose vocab size automatically by removing all singletons
         # Only the top-vocab_size words will be returned as vocab
         # If vocab_size was set as 0, then calculate it as the number of
         # words appeared more than once.
-        vocab_size = len(sorted_word_freqs)
+        # vocab_size = len(sorted_word_freqs)
+        vocab_size = len(sorted_word_freqs) + len(vocab)
         # vocab_size = 0
         # for word, freq in sorted_word_freqs:
         #     if freq > 1:
         #         vocab_size += 1
-    vocab = {'<pad>': 0, '<unk>': 1, '<num>': 2, '<dummy>': 3}
     vcb_len = len(vocab)
     index = vcb_len
     for word, _ in sorted_word_freqs[:vocab_size - vcb_len]:
         vocab[word] = index
         index += 1
-    return vocab
+    freqs = {k:v for k, v in sorted_word_freqs[:len(vocab)]}
+    return {'vocab': vocab, 'freqs': freqs}
