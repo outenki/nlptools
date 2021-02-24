@@ -131,7 +131,7 @@ def sents_to_sequences(
 
 class EmbReader:
     def __init__(self, emb_path, emb_dim=None):
-        logger.info('Loading embeddings from: ' + emb_path)
+        logger.info(f'Loading embeddings from: {emb_path}')
         has_header = False
         with codecs.open(emb_path, 'r', encoding='utf8') as emb_file:
             tokens = emb_file.readline().split()
@@ -155,7 +155,7 @@ class EmbReader:
                     f'match with the requested dimension({emb_dim})'
                 self.embeddings = {}
                 counter = 0
-                for line in emb_file:
+                for line in tqdm.tqdm(list(emb_file)):
                     line = line.rstrip()
                     tokens = line.split(' ')
                     assert len(tokens) == self.emb_dim + 1, \
@@ -164,7 +164,7 @@ class EmbReader:
                         f'next line: {emb_file.readline()}'
                     word = tokens[0]
                     vec = tokens[1:]
-                    self.embeddings[word] = vec
+                    self.embeddings[word] = np.array(vec, dtype=float)
                     counter += 1
                 assert counter == self.vocab_size, \
                     'Vocab size does not match the header info'
@@ -184,7 +184,7 @@ class EmbReader:
                             does not match the header info'
                     word = tokens[0]
                     vec = tokens[1:]
-                    self.embeddings[word] = vec
+                    self.embeddings[word] = np.array(vec, dtype=float)
                     self.vocab_size += 1
 
         logger.info(f'  #vec: {self.vocab_size}, #dim: {self.emb_dim}')
@@ -193,7 +193,23 @@ class EmbReader:
         try:
             return self.embeddings[word]
         except KeyError:
-            return None
+            return np.zeros(self.emb_dim)
+
+    def word2emb(self, word: str):
+        return self.get_emb_given_word(word)
+
+    def tokens2emb(self, tokens: List[str], method: str):
+        methods = {'mean'}
+        tokens_emb = [self.word2emb(w) for w in tokens]
+        # import ipdb; ipdb.set_trace()
+        if method == 'mean':
+            try:
+                return np.vstack(tokens_emb).mean(0)
+            except:
+                import ipdb; ipdb.set_trace()
+                print(tokens)
+        else:
+            assert ValueError(f'method need to be in {methods}')
 
     def get_emb_matrix_given_vocab(self, vocab):
         counter = 0.
@@ -204,7 +220,7 @@ class EmbReader:
                 counter += 1
             except KeyError:
                 pass
-        rate = 100*counter/len(vocab)
+        rate = 100 * counter / len(vocab)
         logger.info(f'{counter}/{len(vocab)} word \
             vectors initialized (hit rate: {rate:.2})')
         return emb_matrix
@@ -269,5 +285,5 @@ def create_vocab_from_tokens(
     for word, _ in sorted_word_freqs[:vocab_size - vcb_len]:
         vocab[word] = index
         index += 1
-    freqs = {k:v for k, v in sorted_word_freqs[:len(vocab)]}
+    freqs = {k: v for k, v in sorted_word_freqs[:len(vocab)]}
     return {'vocab': vocab, 'freqs': freqs}
