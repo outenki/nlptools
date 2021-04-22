@@ -205,9 +205,8 @@ class EmbReader:
         if method == 'mean':
             try:
                 return np.vstack(tokens_emb).mean(0)
-            except:
-                import ipdb; ipdb.set_trace()
-                print(tokens)
+            except Exception:
+                print(f"Failed on tokens2emb({tokens})")
         else:
             assert ValueError(f'method need to be in {methods}')
 
